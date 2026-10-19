@@ -1,306 +1,209 @@
 /**
  * POST /api/generate-edition
  *
- * AI-powered daily edition generator.
- * Call this once per day (via cron or manually) to generate a fresh edition.
+ * AI-powered daily edition generator using Gemini.
+ * Generates 5 fresh questions with full answer banks, rarity tiers, and context.
  *
- * The AI generates 5 questions, each with:
- *  - A prompt with a clear scope
- *  - 8-12 accepted answers spanning all rarity tiers
- *  - Aliases for common spelling variants
- *  - Per-answer context notes
- *  - An editorial explanation
+ * Body: { date?: "YYYY-MM-DD", secret: string }
+ * Returns: { edition: DailyEdition, generatedAt: string }
  *
- * Body: { date: "YYYY-MM-DD", secret: string }
- * Returns: DailyEdition JSON
- *
- * Secure this endpoint with GENERATION_SECRET env var in production.
+ * Secured by GENERATION_SECRET env var.
  */
 
 import { NextResponse } from "next/server";
 import type { DailyEdition, MultiAnswerQuestion, AcceptedAnswer, RarityTier } from "@/lib/types";
 import { RARITY_CONFIG } from "@/lib/config";
+import { getTodayEditionId } from "@/lib/date";
 
 const GENERATION_SECRET = process.env.GENERATION_SECRET ?? "sideb-dev";
 
-// ─── Content categories to rotate through ────────────────────────
-const CATEGORY_POOL = [
-  "Gaming",
-  "Music",
-  "Streaming",
-  "Indian Music",
-  "Indian Internet",
-  "Anime",
-  "Sports",
-  "Films",
-  "Brands",
-  "Tech",
-  "Food",
-  "Internet",
-];
+const SYSTEM_PROMPT = `You are the head question writer for SIDE B, a daily rarity trivia game for 18-24 year olds in India.
 
-const EDITION_THEMES = [
-  "Start here.",
-  "Level two.",
-  "The deep cuts.",
-  "Same curiosity.",
-  "The B-side.",
-  "Flip it over.",
-  "Beyond the obvious.",
-  "Keep digging.",
-  "Off the charts.",
-  "Hidden tracks.",
-];
+The mechanic: Players have 25 seconds to name as many valid answers as possible. Each answer has a rarity tier — common answers score less, rare ones score more. The game feels like a speed round where players shout out answers.
 
-// ─── System prompt for GPT ────────────────────────────────────────
-const SYSTEM_PROMPT = `You are the question designer for SIDE B, an Indian culture and global pop-culture trivia game.
+RARITY TIERS:
+- the-hit: 100 pts — first answer everyone says (need at least 3-4 per question)
+- radio-rotation: 200 pts — most players get this with a second of thought
+- b-side: 350 pts — takes a bit of digging
+- crate-find: 500 pts — enthusiast territory
+- cult-favourite: 700 pts — dedicated fan knowledge
+- deep-vault: 1000 pts — almost nobody gets this
 
-The game mechanic: Players have 25 seconds to name as many valid answers to a prompt as possible. Each answer has its own rarity tier — common answers score less, rare answers score more.
+RULES FOR GREAT QUESTIONS:
+1. Must have 8-14 valid answers spanning all tiers
+2. Must have at least 3 "the-hit" answers — players need an easy entry point
+3. Players must be able to start answering in 1 second — no obscure premise
+4. Audience: Indian college students who use Instagram, YouTube, Netflix, Spotify, play games, follow IPL and football
+5. Mix Indian and global culture across the 5 questions
+6. Questions like "Name a Pokémon", "Name an IPL team", "Name a Netflix show", "Name a superhero" work great
+7. AVOID single-answer trivia, award-specific questions, or anything requiring specialist knowledge just to START
 
-RARITY TIERS (assign these to each answer):
-- the-hit: 100 pts — everyone names this first
-- radio-rotation: 200 pts — most players will get it
-- b-side: 350 pts — needs some thought
-- crate-find: 500 pts — enthusiast knowledge
-- cult-favourite: 700 pts — dedicated fan knowledge  
-- deep-vault: 1000 pts — exceptionally obscure
+RESPOND WITH VALID JSON ONLY. No markdown, no explanation, just the JSON.`;
 
-GOOD QUESTION CRITERIA:
-1. Must have 8-15 valid answers across all rarity tiers
-2. Entry point must be instantly obvious (at least 3 "the-hit" answers)
-3. Must be answerable in 25 seconds — players need to rattle off answers
-4. Must appeal to 18-24 year olds in India
-5. Mix Indian and global culture
-6. Clear inclusion/exclusion criteria — no ambiguity
+function buildPrompt(date: string): string {
+  const dayName = new Date(date).toLocaleDateString("en-IN", { weekday: "long" });
+  return `Generate a SIDE B Daily Cut edition for ${dayName}, ${date}.
 
-QUESTION FORMATS THAT WORK WELL:
-- "Name a Pokémon" (huge answer space, instant recognition)
-- "Name an artist with 1B+ Spotify streams"
-- "Name a Netflix original series"
-- "Name a superhero film"
-- "Name an IPL team"
-- "Name a battle royale game"
-- "Name a fast food chain in India"
-- "Name an anime series"
-- "Name a sneaker brand"
-- "Name an Indian creator with 1M+ followers"
+Create exactly 5 varied questions. Mix these vibes:
+- 1 gaming/anime question (huge answer space)
+- 1 music question (Indian or global, contemporary)  
+- 1 streaming/films question
+- 1 Indian culture/internet/sports question
+- 1 everyday brands/food/tech question
 
-QUESTION FORMATS TO AVOID:
-- Single-answer trivia ("Which film won...")
-- Award-specific questions ("Name a film that won X award at Y ceremony")
-- Hyper-niche festivals or events
-- Questions requiring specialist knowledge just to start
+Each question needs 8-14 accepted answers spanning all rarity tiers.
 
-AUDIENCE: 18-24, Indian college students and young professionals who use Instagram, YouTube, Spotify, watch Netflix, play mobile games, follow IPL and global football.
-
-You MUST respond with valid JSON only — no markdown, no prose, just the JSON.`;
-
-function buildGenerationPrompt(date: string, categories: string[]): string {
-  return `Generate a SIDE B Daily Cut edition for date: ${date}
-
-Create exactly 5 questions. Use these categories (one per question): ${categories.join(", ")}
-
-For each question, provide 8-12 accepted answers spanning all rarity tiers. At least 3 answers must be "the-hit" (100 pts) — obvious answers players will name immediately.
-
-Respond with this exact JSON structure:
+Return this exact JSON:
 {
-  "title": "short editorial title (3-5 words)",
-  "description": "one sentence describing the edition",
+  "title": "3-5 word editorial title",
+  "description": "one punchy sentence",
   "questions": [
     {
-      "id": "unique-id-like-2026-10-19-q1",
+      "id": "${date}-q1",
       "prompt": "Name a ...",
       "category": "Category",
-      "intro": "optional 1-sentence flavour text or null",
-      "inclusionCriteria": "what counts as a valid answer",
-      "hint": "a nudge without giving it away",
-      "explanation": "2-3 sentences of editorial context shown after the round",
+      "intro": "optional 1-sentence flavour or null",
+      "inclusionCriteria": "exact criteria for what counts",
+      "hint": "nudge without giving it away",
+      "explanation": "2-3 sentences of context shown after the round",
       "acceptedAnswers": [
         {
-          "id": "kebab-case-id",
-          "display": "Canonical Display Name",
-          "aliases": ["alternate spelling", "common abbreviation"],
+          "id": "kebab-case-unique-id",
+          "display": "Canonical Name",
+          "aliases": ["alt spelling", "abbreviation"],
           "rarity": "the-hit",
           "points": 100,
           "context": "one sentence shown on reveal"
         }
       ]
-    }
+    },
+    { "id": "${date}-q2", ... },
+    { "id": "${date}-q3", ... },
+    { "id": "${date}-q4", ... },
+    { "id": "${date}-q5", ... }
   ]
 }
 
-Make the questions varied — different subjects, different difficulty feels. The first question should be the most accessible (widest answer space). Include at least one India-specific question and one global pop culture question.`;
+Make it fresh, fun, and culturally relevant. The Pokémon question always works — but try something different today.`;
 }
 
-// ─── Parse + validate GPT response ───────────────────────────────
 function parseEdition(raw: string, date: string): DailyEdition {
   let parsed: Record<string, unknown>;
   try {
     const cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
     parsed = JSON.parse(cleaned);
   } catch {
-    throw new Error(`Invalid JSON from AI: ${raw.slice(0, 300)}`);
+    throw new Error(`Invalid JSON from Gemini: ${raw.slice(0, 300)}`);
   }
 
-  const questions = (parsed.questions as unknown[]).map((q: unknown, qi) => {
+  const rawQuestions = Array.isArray(parsed.questions) ? parsed.questions : [];
+  if (rawQuestions.length === 0) throw new Error("No questions in generated edition");
+
+  const questions: MultiAnswerQuestion[] = rawQuestions.map((q: unknown, qi: number) => {
     const question = q as Record<string, unknown>;
-    const answers = (question.acceptedAnswers as unknown[]).map((a: unknown) => {
+    const rawAnswers = Array.isArray(question.acceptedAnswers) ? question.acceptedAnswers : [];
+
+    const answers: AcceptedAnswer[] = rawAnswers.map((a: unknown) => {
       const ans = a as Record<string, unknown>;
-      const rarity = ans.rarity as string;
-      if (!RARITY_CONFIG[rarity]) {
-        throw new Error(`Unknown rarity tier: ${rarity}`);
-      }
-      const answer: AcceptedAnswer = {
-        id: String(ans.id),
-        display: String(ans.display),
+      const rarity = String(ans.rarity ?? "b-side") as RarityTier;
+      const validRarity = RARITY_CONFIG[rarity] ? rarity : "b-side";
+      return {
+        id: String(ans.id ?? `${date}-q${qi + 1}-a${Math.random().toString(36).slice(2, 6)}`),
+        display: String(ans.display ?? ""),
         aliases: Array.isArray(ans.aliases) ? ans.aliases.map(String) : [],
-        rarity: rarity as RarityTier,
-        points: RARITY_CONFIG[rarity].points, // always use config points, ignore AI-provided
+        rarity: validRarity as RarityTier,
+        points: RARITY_CONFIG[validRarity].points, // always use config, never trust AI points
         context: ans.context ? String(ans.context) : undefined,
         provisional: true,
       };
-      return answer;
-    });
+    }).filter((a) => a.display); // drop any blank answers
 
-    const mq: MultiAnswerQuestion = {
-      id: String(question.id || `${date}-q${qi + 1}`),
-      prompt: String(question.prompt),
-      category: String(question.category),
-      intro: question.intro ? String(question.intro) : undefined,
+    return {
+      id: String(question.id ?? `${date}-q${qi + 1}`),
+      prompt: String(question.prompt ?? ""),
+      category: String(question.category ?? "General"),
+      intro: question.intro && question.intro !== "null" ? String(question.intro) : undefined,
       inclusionCriteria: question.inclusionCriteria ? String(question.inclusionCriteria) : undefined,
       hint: question.hint ? String(question.hint) : undefined,
       timeLimitSeconds: 25,
-      explanation: String(question.explanation),
+      explanation: String(question.explanation ?? ""),
       acceptedAnswers: answers,
     };
-    return mq;
   });
 
-  const edition: DailyEdition = {
+  return {
     id: date,
     date,
-    title: String(parsed.title || "Today's Cut"),
-    description: String(parsed.description || "Five rounds. Name as many as you can."),
+    title: String(parsed.title ?? "Today's Cut"),
+    description: String(parsed.description ?? "Five rounds. Name as many as you can in 25 seconds."),
     questions,
   };
-
-  return edition;
 }
 
-// ─── Route handler ────────────────────────────────────────────────
 export async function POST(request: Request): Promise<NextResponse> {
-  const apiKey = process.env.OPENAI_API_KEY;
-
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json(
-      { error: "OPENAI_API_KEY not configured — cannot generate editions." },
-      { status: 503 }
-    );
+    return NextResponse.json({ error: "GEMINI_API_KEY not configured" }, { status: 503 });
   }
 
-  let body: { date?: string; secret?: string; categories?: string[] };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  let body: { date?: string; secret?: string };
+  try { body = await request.json(); }
+  catch { return NextResponse.json({ error: "Invalid request body" }, { status: 400 }); }
 
-  // Simple secret guard — replace with proper auth in production
   if (body.secret !== GENERATION_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const date = body.date ?? new Date().toISOString().split("T")[0];
-
-  // Pick 5 categories — use provided or rotate through pool
-  const categories = body.categories ?? pickCategories();
+  const date = body.date ?? getTodayEditionId();
+  const model = process.env.GEMINI_MODEL ?? "gemini-3-flash-preview";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout for generation
+  const timeout = setTimeout(() => controller.abort(), 45000);
 
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: buildGenerationPrompt(date, categories) },
-        ],
-        temperature: 0.8, // slightly higher for creative variety
-        max_tokens: 4000,
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ parts: [{ text: buildPrompt(date) }] }],
+        generationConfig: { temperature: 0.85, maxOutputTokens: 8000 },
       }),
       signal: controller.signal,
     });
-
     clearTimeout(timeout);
 
-    if (!response.ok) {
-      const err = await response.text().catch(() => "");
-      return NextResponse.json(
-        { error: `OpenAI error ${response.status}: ${err.slice(0, 200)}` },
-        { status: 502 }
-      );
+    if (!res.ok) {
+      const err = await res.text().catch(() => "");
+      return NextResponse.json({ error: `Gemini error ${res.status}: ${err.slice(0, 300)}` }, { status: 502 });
     }
 
-    const data = await response.json();
-    const content = data?.choices?.[0]?.message?.content;
+    const data = await res.json();
+    const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (typeof content !== "string") {
-      return NextResponse.json({ error: "Unexpected OpenAI response" }, { status: 502 });
+      return NextResponse.json({ error: "Unexpected Gemini response structure", raw: data }, { status: 502 });
     }
 
     const edition = parseEdition(content, date);
-
-    return NextResponse.json({ edition, generatedAt: new Date().toISOString() });
+    return NextResponse.json({ edition, generatedAt: new Date().toISOString(), model });
   } catch (err) {
     clearTimeout(timeout);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[generate-edition] Error:", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    console.error("[generate-edition]", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
-// GET endpoint — preview what today's generation would look like
 export async function GET(request: Request): Promise<NextResponse> {
-  const url = new URL(request.url);
-  const secret = url.searchParams.get("secret");
-
-  if (secret !== GENERATION_SECRET) {
+  const { searchParams } = new URL(request.url);
+  if (searchParams.get("secret") !== GENERATION_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const categories = pickCategories();
-  const date = new Date().toISOString().split("T")[0];
-
   return NextResponse.json({
-    message: "To generate, POST with { date, secret, categories? }",
-    nextDate: date,
-    suggestedCategories: categories,
-    allCategories: CATEGORY_POOL,
-    editionTheme: EDITION_THEMES[Math.floor(Math.random() * EDITION_THEMES.length)],
+    info: "POST with { secret, date? } to generate a fresh edition",
+    today: getTodayEditionId(),
+    model: process.env.GEMINI_MODEL ?? "gemini-3-flash-preview",
+    geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
   });
-}
-
-// ─── Pick 5 varied categories ─────────────────────────────────────
-function pickCategories(): string[] {
-  // Always ensure variety — pick from different buckets
-  const gaming = ["Gaming", "Anime"];
-  const music = ["Music", "Indian Music"];
-  const screen = ["Streaming", "Films"];
-  const culture = ["Indian Internet", "Internet", "Sports"];
-  const everyday = ["Brands", "Tech", "Food"];
-
-  const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
-
-  return [
-    pick(gaming),
-    pick(music),
-    pick(screen),
-    pick(culture),
-    pick(everyday),
-  ];
 }

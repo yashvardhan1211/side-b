@@ -16,7 +16,7 @@ import { NextResponse } from "next/server";
 import type { AIValidationRequest, AIValidationResponse } from "@/lib/types";
 import { SAMPLE_EDITIONS } from "@/data/editions";
 import { normalize, matchAnswer } from "@/lib/validation";
-import { mockProvider, createOpenAIProvider } from "@/lib/ai";
+import { mockProvider, createOpenAIProvider, createGeminiProvider } from "@/lib/ai";
 import type { AIProvider } from "@/lib/ai";
 
 // In-process cache — survives across requests in the same serverless instance.
@@ -29,7 +29,8 @@ function getCacheKey(questionId: string, normalizedGuess: string): string {
 }
 
 function getProvider(): AIProvider {
-  // Evaluated at request time so hot-reloads and env changes take effect.
+  // Prefer Gemini, fall back to OpenAI, then mock
+  if (process.env.GEMINI_API_KEY) return createGeminiProvider();
   if (process.env.OPENAI_API_KEY) return createOpenAIProvider();
   return mockProvider;
 }
