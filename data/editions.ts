@@ -19,8 +19,8 @@ export const SAMPLE_EDITIONS: DailyEdition[] = [
   // EDITION 001 — 2026-10-18
   // ════════════════════════════════════════════════════════════
   {
-    id: "2026-10-18",
-    date: "2026-10-18",
+    id: "2026-10-19",
+    date: "2026-10-19",
     title: "Start here.",
     description: "Five rounds. One prompt each. Name as many as you can in 25 seconds.",
     questions: [
@@ -273,8 +273,8 @@ export const SAMPLE_EDITIONS: DailyEdition[] = [
   // EDITION 002 — 2026-10-17
   // ════════════════════════════════════════════════════════════
   {
-    id: "2026-10-17",
-    date: "2026-10-17",
+    id: "2026-10-18",
+    date: "2026-10-18",
     title: "Level two.",
     description: "Broader questions. Deeper answers.",
     questions: [
@@ -445,8 +445,8 @@ export const SAMPLE_EDITIONS: DailyEdition[] = [
   // EDITION 003 — 2026-10-16
   // ════════════════════════════════════════════════════════════
   {
-    id: "2026-10-16",
-    date: "2026-10-16",
+    id: "2026-10-17",
+    date: "2026-10-17",
     title: "The deep cuts.",
     description: "Questions that reward knowing more than the obvious answer.",
     questions: [
@@ -611,8 +611,8 @@ export const SAMPLE_EDITIONS: DailyEdition[] = [
   // EDITION 004 — 2026-10-15
   // ════════════════════════════════════════════════════════════
   {
-    id: "2026-10-15",
-    date: "2026-10-15",
+    id: "2026-10-16",
+    date: "2026-10-16",
     title: "Same curiosity.",
     description: "Five more. Pick your expertise.",
     questions: [
@@ -776,4 +776,12 @@ export function getEditionNumber(id: string): number {
   const sorted = [...SAMPLE_EDITIONS].sort((a, b) => a.id.localeCompare(b.id));
   const idx = sorted.findIndex((e) => e.id === id);
   return idx >= 0 ? idx + 1 : 0;
+}
+
+/**
+ * Returns the most recently dated edition — used as a fallback when
+ * today has no edition yet (e.g. between content updates).
+ */
+export function getMostRecentEdition(): DailyEdition {
+  return [...SAMPLE_EDITIONS].sort((a, b) => b.id.localeCompare(a.id))[0];
 }

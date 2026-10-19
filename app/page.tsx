@@ -2,16 +2,17 @@ import Link from "next/link";
 import { ArrowRight, BookOpen } from "lucide-react";
 import { RARITY_CONFIG, RARITY_ORDER } from "@/lib/config";
 import { formatEditionLabel, getTodayEditionId } from "@/lib/date";
-import { getEditionById, getEditionNumber } from "@/data/editions";
+import { getEditionById, getEditionNumber, getMostRecentEdition } from "@/data/editions";
 import { getFeaturedNote } from "@/data/notes";
 import HomeStatsBar from "./HomeStatsBar";
 
 const TODAY_EDITION_ID = getTodayEditionId();
 
 export default function HomePage() {
-  const todayEdition = getEditionById(TODAY_EDITION_ID);
-  const editionNumber = todayEdition ? getEditionNumber(TODAY_EDITION_ID) : 0;
-  const label = todayEdition ? formatEditionLabel(TODAY_EDITION_ID, editionNumber) : "";
+  // Use today's edition if available, otherwise fall back to the most recent
+  const todayEdition = getEditionById(TODAY_EDITION_ID) ?? getMostRecentEdition();
+  const editionNumber = getEditionNumber(todayEdition.id);
+  const label = formatEditionLabel(todayEdition.id, editionNumber);
   const featuredNote = getFeaturedNote();
 
   return (
@@ -84,33 +85,21 @@ export default function HomePage() {
               {/* Stats bar */}
               <HomeStatsBar />
 
-              {/* Primary CTA */}
-              {todayEdition ? (
-                <Link href="/play" className="block mt-6">
-                  <button
-                    className="w-full md:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 font-mono text-xs tracking-widest uppercase transition-opacity hover:opacity-85"
-                    style={{
-                      backgroundColor: "var(--color-ink)",
-                      color: "var(--color-paper)",
-                      borderRadius: "2px",
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    Play today&apos;s cut
-                    <ArrowRight size={14} />
-                  </button>
-                </Link>
-              ) : (
-                <div
-                  className="border p-4 mt-6"
-                  style={{ borderColor: "var(--color-dust-border)" }}
+              {/* Primary CTA — always available, falls back to most recent edition */}
+              <Link href="/play" className="block mt-6">
+                <button
+                  className="w-full md:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 font-mono text-xs tracking-widest uppercase transition-opacity hover:opacity-85"
+                  style={{
+                    backgroundColor: "var(--color-ink)",
+                    color: "var(--color-paper)",
+                    borderRadius: "2px",
+                    letterSpacing: "0.1em",
+                  }}
                 >
-                  <p className="label-caps mb-1">No edition today</p>
-                  <p className="text-sm" style={{ color: "var(--color-dust)" }}>
-                    Check back tomorrow. In the meantime, explore the archive.
-                  </p>
-                </div>
-              )}
+                  Play today&apos;s cut
+                  <ArrowRight size={14} />
+                </button>
+              </Link>
             </div>
 
             {/* Rarity preview column */}

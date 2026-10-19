@@ -1,26 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { getEditionById, getEditionNumber } from "@/data/editions";
+import { getEditionById, getEditionNumber, getMostRecentEdition } from "@/data/editions";
 import { getTodayEditionId } from "@/lib/date";
 import GameEngine from "@/components/game/GameEngine";
-import EmptyState from "@/components/ui/EmptyState";
-import Button from "@/components/ui/Button";
 
 export const metadata: Metadata = {
   title: "The Daily Cut",
   description: "Play today's edition of The Daily Cut.",
 };
 
-const TODAY_EDITION_ID = getTodayEditionId();
-
 export default function PlayPage() {
-  const edition = getEditionById(TODAY_EDITION_ID);
-  const editionNumber = edition ? getEditionNumber(TODAY_EDITION_ID) : 0;
+  const todayId = getTodayEditionId();
+
+  // Use today's edition if it exists; otherwise fall back to the most recent one.
+  // This prevents "No edition today" when content hasn't been updated for the new date.
+  const edition = getEditionById(todayId) ?? getMostRecentEdition();
+  const editionNumber = getEditionNumber(edition.id);
 
   return (
     <div className="flex-1 flex flex-col">
-      {/* Game shell */}
       <div className="flex-1 max-w-content mx-auto w-full px-0 md:px-0">
         {/* Mobile back link */}
         <div className="md:hidden px-5 pt-4 flex items-center gap-2">
@@ -34,23 +33,7 @@ export default function PlayPage() {
           </Link>
         </div>
 
-        {edition ? (
-          <GameEngine edition={edition} editionNumber={editionNumber} />
-        ) : (
-          <div className="px-5 py-16">
-            <EmptyState
-              title="No edition today"
-              description="There's no new Daily Cut for today. Check back tomorrow, or explore past editions in the archive."
-              action={
-                <Link href="/archive">
-                  <Button variant="secondary" size="md">
-                    Browse archive →
-                  </Button>
-                </Link>
-              }
-            />
-          </div>
-        )}
+        <GameEngine edition={edition} editionNumber={editionNumber} />
       </div>
     </div>
   );
