@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { SAMPLE_EDITIONS, getEditionNumber } from "@/data/editions";
-import { formatEditionLabel, formatFullDate } from "@/lib/date";
+import { formatEditionLabel } from "@/lib/date";
 import ArchiveList from "./ArchiveList";
 
 export const metadata: Metadata = {
@@ -22,7 +21,7 @@ export default function ArchivePage() {
     questionCount: e.questions.length,
     editionNumber: getEditionNumber(e.id),
     label: formatEditionLabel(e.date, getEditionNumber(e.id)),
-    fullDate: formatFullDate(e.date),
+    fullDate: e.date,
   }));
 
   return (

@@ -19,10 +19,10 @@ export default function NotFound() {
           className="font-serif text-2xl font-bold mb-3"
           style={{ color: "var(--color-ink)" }}
         >
-          This track doesn't exist.
+          This track doesn&apos;t exist.
         </h1>
         <p className="text-sm mb-8" style={{ color: "var(--color-dust)" }}>
-          Whatever you were looking for, it's not in the vault.
+          Whatever you were looking for, it&apos;s not in the vault.
         </p>
         <Link
           href="/"

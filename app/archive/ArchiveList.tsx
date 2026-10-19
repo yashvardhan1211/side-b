@@ -2,14 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, Lock } from "lucide-react";
-import {
-  loadCompletedEditions,
-  isEditionCompleted,
-  getCompletedEdition,
-} from "@/lib/storage";
+import { Check } from "lucide-react";
+import { loadCompletedEditions } from "@/lib/storage";
+import { getTodayEditionId } from "@/lib/date";
 import type { CompletedEdition } from "@/lib/types";
-import { RARITY_CONFIG } from "@/lib/config";
 
 interface EditionMeta {
   id: string;
@@ -28,13 +24,14 @@ interface ArchiveListProps {
 
 type FilterTab = "all" | "played" | "missed";
 
-const TODAY_ID = "2026-10-18";
-
 export default function ArchiveList({ editions }: ArchiveListProps) {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [completedMap, setCompletedMap] = useState<Map<string, CompletedEdition>>(new Map());
+  const [todayId, setTodayId] = useState("");
 
   useEffect(() => {
+    // Compute today's IST date client-side (avoids SSR/client mismatch)
+    setTodayId(getTodayEditionId());
     const completed = loadCompletedEditions();
     const map = new Map(completed.map((c) => [c.editionId, c]));
     setCompletedMap(map);
@@ -43,7 +40,8 @@ export default function ArchiveList({ editions }: ArchiveListProps) {
   const filtered = editions.filter((e) => {
     const done = completedMap.has(e.id);
     if (filter === "played") return done;
-    if (filter === "missed") return !done && e.id !== TODAY_ID;
+    // "missed" = not completed AND not today's edition (today is still playable)
+    if (filter === "missed") return !done && e.id !== todayId;
     return true;
   });
 
@@ -70,10 +68,8 @@ export default function ArchiveList({ editions }: ArchiveListProps) {
             onClick={() => setFilter(id)}
             className="flex-1 py-2.5 font-mono text-xs tracking-widest uppercase transition-colors"
             style={{
-              backgroundColor:
-                filter === id ? "var(--color-ink)" : "var(--color-paper)",
-              color:
-                filter === id ? "var(--color-paper)" : "var(--color-dust)",
+              backgroundColor: filter === id ? "var(--color-ink)" : "var(--color-paper)",
+              color:           filter === id ? "var(--color-paper)" : "var(--color-dust)",
             }}
           >
             {label}
@@ -98,17 +94,17 @@ export default function ArchiveList({ editions }: ArchiveListProps) {
         <div className="space-y-px" style={{ backgroundColor: "var(--color-dust-border)" }}>
           {filtered.map((e) => {
             const completed = completedMap.get(e.id);
-            const isToday = e.id === TODAY_ID;
+            const isToday = e.id === todayId;
 
             return (
               <Link
                 key={e.id}
                 href={isToday ? "/play" : `/archive/${e.id}`}
-                className="flex items-center justify-between px-4 py-4 group transition-colors hover:bg-dust-light"
+                className="flex items-center justify-between px-4 py-4 group transition-colors hover:opacity-80"
                 style={{ backgroundColor: "var(--color-paper)" }}
               >
                 <div className="flex items-start gap-4 min-w-0">
-                  {/* Status dot */}
+                  {/* Status indicator */}
                   <div className="flex-shrink-0 mt-1">
                     {completed ? (
                       <div
@@ -119,7 +115,7 @@ export default function ArchiveList({ editions }: ArchiveListProps) {
                       </div>
                     ) : (
                       <div
-                        className="w-5 h-5 border flex items-center justify-center"
+                        className="w-5 h-5 border"
                         style={{ borderColor: "var(--color-dust-border)" }}
                       />
                     )}
@@ -134,20 +130,12 @@ export default function ArchiveList({ editions }: ArchiveListProps) {
                       {e.title}
                     </p>
                     {completed ? (
-                      <p
-                        className="text-xs mt-0.5"
-                        style={{ color: "var(--color-dust)" }}
-                      >
-                        {completed.totalScore} pts ·{" "}
-                        {completed.totalDiscoveries} answers found
+                      <p className="text-xs mt-0.5" style={{ color: "var(--color-dust)" }}>
+                        {completed.totalScore} pts &middot; {completed.totalDiscoveries} answers found
                       </p>
                     ) : (
-                      <p
-                        className="text-xs mt-0.5"
-                        style={{ color: "var(--color-dust)" }}
-                      >
-                        {e.questionCount} questions
-                        {isToday ? " · Today's edition" : ""}
+                      <p className="text-xs mt-0.5" style={{ color: "var(--color-dust)" }}>
+                        {e.questionCount} questions{isToday ? " · Today's edition" : ""}
                       </p>
                     )}
                   </div>

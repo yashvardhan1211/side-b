@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Check, X } from "lucide-react";
-import type { DailyEdition, CompletedEdition, MultiAnswerQuestion, RoundState } from "@/lib/types";
+import type { DailyEdition, CompletedEdition, RoundState } from "@/lib/types";
 import { getCompletedEdition } from "@/lib/storage";
 import { getEditionMaxScore } from "@/lib/scoring";
 import { RARITY_CONFIG } from "@/lib/config";
@@ -13,7 +13,7 @@ interface Props {
   editionNumber: number;
 }
 
-export default function ArchiveReview({ edition, editionNumber }: Props) {
+export default function ArchiveReview({ edition }: Props) {
   const [completed, setCompleted] = useState<CompletedEdition | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -31,7 +31,7 @@ export default function ArchiveReview({ edition, editionNumber }: Props) {
           className="border p-5 mb-6"
           style={{ borderColor: "var(--color-dust-border)", backgroundColor: "rgba(154,146,127,0.05)" }}
         >
-          <p className="label-caps mb-2">You haven't played this edition</p>
+          <p className="label-caps mb-2">You haven&apos;t played this edition</p>
           <p className="text-sm mb-4" style={{ color: "var(--color-dust)" }}>
             Review the questions and accepted answers below. Scores are only
             awarded during a live game session. Each edition can only be scored once.
@@ -102,7 +102,7 @@ function QuestionList({
                 .sort((a, b) => a.points - b.points)
                 .map((answer) => {
                   const found = foundIds.has(answer.id);
-                  const discovery = round?.discoveries.find((d) => d.canonicalId === answer.id);
+                  const _matchedDiscovery = round?.discoveries.find((d) => d.canonicalId === answer.id);
                   return (
                     <div
                       key={answer.id}

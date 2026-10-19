@@ -18,7 +18,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Check, Clock, ChevronDown, ChevronUp, Zap } from "lucide-react";
+import { Check, Clock, ChevronDown, ChevronUp } from "lucide-react";
 import type { MultiAnswerQuestion, RoundState, ValidationOutcome, Discovery } from "@/lib/types";
 import { RARITY_CONFIG } from "@/lib/config";
 import RarityBadge from "@/components/ui/RarityBadge";
@@ -28,7 +28,6 @@ interface RoundScreenProps {
   round: RoundState;
   roundIndex: number;
   totalRounds: number;
-  editionNumber: number;
   lastOutcome: ValidationOutcome | null;
   isPending: boolean;
   onSubmit: (guess: string) => void;
@@ -40,7 +39,6 @@ export default function RoundScreen({
   round,
   roundIndex,
   totalRounds,
-  editionNumber,
   lastOutcome,
   isPending,
   onSubmit,
@@ -326,7 +324,7 @@ export default function RoundScreen({
           className="p-4 text-center animate-fade-in"
           style={{ backgroundColor: "var(--color-ink)", color: "var(--color-paper)" }}
         >
-          <p className="font-serif font-bold text-lg mb-1">Time's up.</p>
+          <p className="font-serif font-bold text-lg mb-1">Time&apos;s up.</p>
           <p className="label-caps" style={{ color: "var(--color-dust)" }}>
             {round.discoveries.length > 0
               ? `${round.discoveries.length} answer${round.discoveries.length > 1 ? "s" : ""} found — see results below.`

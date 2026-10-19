@@ -3,9 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { SAMPLE_EDITIONS, getEditionById, getEditionNumber } from "@/data/editions";
-import { formatEditionLabel, formatFullDate } from "@/lib/date";
-import { RARITY_CONFIG } from "@/lib/config";
-import RarityBadge from "@/components/ui/RarityBadge";
+import { formatEditionLabel } from "@/lib/date";
 import ArchiveReview from "./ArchiveReview";
 
 interface Props {
@@ -30,7 +28,6 @@ export default function ArchiveEditionPage({ params }: Props) {
 
   const number = getEditionNumber(edition.id);
   const label = formatEditionLabel(edition.date, number);
-  const fullDate = formatFullDate(edition.date);
 
   return (
     <div className="flex-1">

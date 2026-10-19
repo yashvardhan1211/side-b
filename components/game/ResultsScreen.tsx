@@ -6,7 +6,7 @@ import { Share2, ArrowRight } from "lucide-react";
 import type { DailyEdition, CompletedEdition } from "@/lib/types";
 import { getCompletedEdition } from "@/lib/storage";
 import { getRankConfig, getEditionMaxScore } from "@/lib/scoring";
-import { RARITY_CONFIG, RARITY_ORDER } from "@/lib/config";
+import { RARITY_CONFIG } from "@/lib/config";
 import { formatEditionLabel } from "@/lib/date";
 import RarityBadge from "@/components/ui/RarityBadge";
 import Button from "@/components/ui/Button";
@@ -25,7 +25,7 @@ const CLOSING_MESSAGES = [
   "Same curiosity. New side.",
 ];
 
-export default function ResultsScreen({ edition, editionNumber, isToday }: ResultsScreenProps) {
+export default function ResultsScreen({ edition, editionNumber }: ResultsScreenProps) {
   const [completed, setCompleted] = useState<CompletedEdition | null>(null);
   const [shareVisible, setShareVisible] = useState(false);
 
@@ -209,7 +209,6 @@ export default function ResultsScreen({ edition, editionNumber, isToday }: Resul
           completed={completed}
           rankLabel={rankConfig.label}
           editionLabel={label}
-          questions={edition.questions}
           onClose={() => setShareVisible(false)}
         />
       )}
@@ -236,7 +235,7 @@ function buildShareText(
   completed: CompletedEdition,
   rankConfig: ReturnType<typeof getRankConfig>,
   label: string,
-  edition: DailyEdition
+  _edition: DailyEdition
 ): string {
   const rarityMap: Record<string, string> = {
     "the-hit": "⬜", "radio-rotation": "🟩", "b-side": "🟦",

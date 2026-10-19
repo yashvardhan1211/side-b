@@ -89,7 +89,7 @@ export default function DesktopNav() {
             letterSpacing: "0.12em",
           }}
         >
-          Play Today's Cut
+          Play Today&apos;s Cut
         </Link>
       </div>
     </header>

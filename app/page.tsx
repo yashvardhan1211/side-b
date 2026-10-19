@@ -1,13 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, Flame, Trophy, BookOpen } from "lucide-react";
+import { ArrowRight, BookOpen } from "lucide-react";
 import { RARITY_CONFIG, RARITY_ORDER } from "@/lib/config";
-import { formatEditionLabel } from "@/lib/date";
+import { formatEditionLabel, getTodayEditionId } from "@/lib/date";
 import { getEditionById, getEditionNumber } from "@/data/editions";
 import { getFeaturedNote } from "@/data/notes";
 import HomeStatsBar from "./HomeStatsBar";
 
-// Hard-coded today for demo; in production use getTodayEditionId()
-const TODAY_EDITION_ID = "2026-10-18";
+const TODAY_EDITION_ID = getTodayEditionId();
 
 export default function HomePage() {
   const todayEdition = getEditionById(TODAY_EDITION_ID);
@@ -97,7 +96,7 @@ export default function HomePage() {
                       letterSpacing: "0.1em",
                     }}
                   >
-                    Play today's cut
+                    Play today&apos;s cut
                     <ArrowRight size={14} />
                   </button>
                 </Link>

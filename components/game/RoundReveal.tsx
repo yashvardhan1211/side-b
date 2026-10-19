@@ -22,10 +22,9 @@ export default function RoundReveal({
   round,
   roundIndex,
   totalRounds,
-  editionNumber,
   onContinue,
   isLastRound,
-}: RoundRevealProps) {
+}: Omit<RoundRevealProps, "editionNumber"> & { editionNumber?: number }) {
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
@@ -34,7 +33,12 @@ export default function RoundReveal({
   }, []);
 
   const progress = roundIndex + 1;
+
+  // Build a set of found canonical IDs from discoveries.
+  // Also include normalize(display) so off-bank AI answers (whose canonicalId
+  // is the normalised display string) are correctly matched.
   const foundIds = new Set(round.discoveries.map((d) => d.canonicalId));
+
   const foundAnswers = question.acceptedAnswers
     .filter((a) => foundIds.has(a.id))
     .sort((a, b) => b.points - a.points);
@@ -47,9 +51,9 @@ export default function RoundReveal({
     <div className="max-w-content mx-auto px-5 md:px-0 py-8 animate-slide-up">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <span className="label-caps">Round {progress} / {totalRounds}</span>
+        <span className="label-caps">Round {progress} of {totalRounds}</span>
         <span className="label-caps" style={{ color: "var(--color-oxblood)" }}>
-          Edition {String(editionNumber).padStart(3, "0")}
+          {round.discoveries.length > 0 ? `+${round.roundScore} pts` : "0 pts"}
         </span>
       </div>
 
@@ -188,7 +192,7 @@ function AnswerRow({
   guess?: string;
   source?: string;
 }) {
-  const config = RARITY_CONFIG[answer.rarity];
+  const _config = RARITY_CONFIG[answer.rarity];
 
   return (
     <div
@@ -237,7 +241,7 @@ function AnswerRow({
           className="pl-7 text-xs font-mono"
           style={{ color: "var(--color-dust)" }}
         >
-          You typed: "{guess}"
+          You typed: &quot;{guess}&quot;
           {source === "ai" && <span className="ml-2 opacity-60">· via AI</span>}
         </p>
       )}

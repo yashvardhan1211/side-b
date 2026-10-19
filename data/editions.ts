@@ -193,7 +193,7 @@ export const SAMPLE_EDITIONS: DailyEdition[] = [
           { id: "dark",                  display: "Dark",                      aliases: ["dark netflix"],              rarity: "b-side",         points: 350 },
           { id: "sacred-games",          display: "Sacred Games",              aliases: [],                            rarity: "b-side",         points: 350 },
           { id: "delhi-crime",           display: "Delhi Crime",               aliases: [],                            rarity: "b-side",         points: 350 },
-          { id: "scam-1992",             display: "Scam 1992",                 aliases: ["scam 1992 harshad mehta"],  rarity: "b-side",         points: 350 },
+          // Scam 1992 is SonyLIV — removed to avoid factual error
           { id: "one-piece-live",        display: "One Piece (Live Action)",   aliases: ["one piece netflix"],         rarity: "b-side",         points: 350 },
           { id: "beef-netflix",          display: "Beef",                      aliases: [],                            rarity: "crate-find",     points: 500 },
           { id: "all-of-us-are-dead",    display: "All of Us Are Dead",        aliases: [],                            rarity: "crate-find",     points: 500 },
@@ -598,7 +598,7 @@ export const SAMPLE_EDITIONS: DailyEdition[] = [
           { id: "riverdale",      display: "Riverdale",              aliases: [],                            rarity: "radio-rotation", points: 200 },
           { id: "kota-factory",   display: "Kota Factory",           aliases: ["kota factory tvf"],          rarity: "b-side",         points: 350 },
           { id: "class-netflix",  display: "Class",                  aliases: ["class netflix"],             rarity: "b-side",         points: 350 },
-          { id: "tvf-pitchers",   display: "TVF Pitchers",           aliases: ["pitchers"],                  rarity: "b-side",         points: 350 },
+          // TVF Pitchers is about startup founders, not school/college setting — removed
           { id: "skam",           display: "Skam",                   aliases: [],                            rarity: "crate-find",     points: 500 },
           { id: "on-my-block",    display: "On My Block",            aliases: [],                            rarity: "crate-find",     points: 500 },
           { id: "heartbreak-high",display: "Heartbreak High",        aliases: [],                            rarity: "cult-favourite", points: 700, context: "Australian reboot that became a Netflix sleeper hit." },

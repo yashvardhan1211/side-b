@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getEditionById, getEditionNumber } from "@/data/editions";
+import { getTodayEditionId } from "@/lib/date";
 import GameEngine from "@/components/game/GameEngine";
 import EmptyState from "@/components/ui/EmptyState";
 import Button from "@/components/ui/Button";
@@ -11,8 +12,7 @@ export const metadata: Metadata = {
   description: "Play today's edition of The Daily Cut.",
 };
 
-// In production, derive from getTodayEditionId()
-const TODAY_EDITION_ID = "2026-10-18";
+const TODAY_EDITION_ID = getTodayEditionId();
 
 export default function PlayPage() {
   const edition = getEditionById(TODAY_EDITION_ID);

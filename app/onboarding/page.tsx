@@ -167,7 +167,7 @@ export default function OnboardingPage() {
               className="font-serif text-3xl font-bold mb-3"
               style={{ color: "var(--color-ink)" }}
             >
-              You're ready.
+              You&apos;re ready.
             </h2>
             <p
               className="text-base mb-8"

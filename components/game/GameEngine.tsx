@@ -15,14 +15,13 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type {
   DailyEdition,
   GameState,
-  GamePhase,
   RoundState,
   Discovery,
   ValidationOutcome,
-  ValidationStatus,
+  MultiAnswerQuestion,
 } from "@/lib/types";
 import { localMatch } from "@/lib/validation";
-import { getPoints, getTotalScore, getTotalDiscoveries, getRank, getEditionMaxScore } from "@/lib/scoring";
+import { getTotalScore, getTotalDiscoveries, getRank, getEditionMaxScore } from "@/lib/scoring";
 import {
   loadGameState,
   saveGameState,
@@ -63,6 +62,25 @@ function buildRoundState(questionId: string, timeLimitSeconds: number): RoundSta
     roundScore: 0,
     completed: false,
   };
+}
+
+/**
+ * Resolve a canonical ID for an AI-validated answer.
+ * If the AI returned a display name that matches a curated answer, use that
+ * answer's .id slug (e.g. "iron-valiant") so it matches RoundReveal's lookup.
+ * Otherwise fall back to normalize(displayName) — a safe unique key.
+ */
+function resolveCanonicalId(
+  canonicalDisplay: string,
+  question: MultiAnswerQuestion
+): string {
+  const normDisplay = normalize(canonicalDisplay);
+  for (const answer of question.acceptedAnswers) {
+    const candidates = [answer.display, ...answer.aliases].map(normalize);
+    if (candidates.includes(normDisplay)) return answer.id;
+  }
+  // Not in curated bank — use normalized display as a stable key
+  return normDisplay;
 }
 
 export default function GameEngine({ edition, editionNumber }: GameEngineProps) {
@@ -214,7 +232,8 @@ export default function GameEngine({ edition, editionNumber }: GameEngineProps) 
 
       if (cached) {
         if (cached.isValid && cached.rarityTier) {
-          if (round.discoveries.some((d) => d.canonicalId === normalize(cached.canonicalAnswer))) {
+          const canonicalId = resolveCanonicalId(cached.canonicalAnswer, question);
+          if (round.discoveries.some((d) => d.canonicalId === canonicalId)) {
             setLastOutcome({
               status: "duplicate",
               display: cached.canonicalAnswer,
@@ -223,7 +242,7 @@ export default function GameEngine({ edition, editionNumber }: GameEngineProps) 
             return;
           }
           const discovery: Discovery = {
-            canonicalId: normalize(cached.canonicalAnswer),
+            canonicalId,
             display: cached.canonicalAnswer,
             guess,
             rarity: cached.rarityTier as any,
@@ -280,7 +299,8 @@ export default function GameEngine({ edition, editionNumber }: GameEngineProps) 
         });
 
         if (data.isValid && data.rarityTier) {
-          if (latestRound.discoveries.some((d) => d.canonicalId === normalize(data.canonicalAnswer))) {
+          const canonicalId = resolveCanonicalId(data.canonicalAnswer, question);
+          if (latestRound.discoveries.some((d) => d.canonicalId === canonicalId)) {
             setLastOutcome({
               status: "duplicate",
               display: data.canonicalAnswer,
@@ -291,7 +311,7 @@ export default function GameEngine({ edition, editionNumber }: GameEngineProps) 
           }
 
           const discovery: Discovery = {
-            canonicalId: normalize(data.canonicalAnswer),
+            canonicalId,
             display: data.canonicalAnswer,
             guess,
             rarity: data.rarityTier,
@@ -426,7 +446,6 @@ export default function GameEngine({ edition, editionNumber }: GameEngineProps) 
         round={currentRound}
         roundIndex={gameState.currentRoundIndex}
         totalRounds={edition.questions.length}
-        editionNumber={editionNumber}
         lastOutcome={lastOutcome}
         isPending={pendingGuess !== null}
         onSubmit={submitAnswer}

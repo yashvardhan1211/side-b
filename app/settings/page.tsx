@@ -195,7 +195,7 @@ export default function SettingsPage() {
           </h2>
           <p className="text-sm mb-3" style={{ color: "var(--color-dust)" }}>
             This is a local-first application. All game data, stats, and
-            settings are stored in your browser's local storage. Nothing is
+            settings are stored in your browser&apos;s local storage. Nothing is
             transmitted to a server.
           </p>
           <p className="text-sm" style={{ color: "var(--color-dust)" }}>
